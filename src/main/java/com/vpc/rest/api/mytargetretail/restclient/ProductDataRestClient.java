@@ -34,8 +34,12 @@ public class ProductDataRestClient {
         String finalUrl = new StringBuilder(productDataServiceUri).append(productDataServiceEndpoint).append(productId).toString();
 
         try {
-            log.info("Url is : {}", finalUrl);
+            // Call product-data service to retrieve product name
+            log.debug("Url is : {}", finalUrl);
             responseEntity = restTemplate.getForEntity(finalUrl, ProductData.class);
+            if(responseEntity.getStatusCodeValue() < 200 || responseEntity.getStatusCodeValue() > 400) {
+                throw new ApiException("Error from product-data service");
+            }
             productData = responseEntity.getBody();
             name = productData.getName();
         } catch (RestClientException e) {

@@ -1,5 +1,7 @@
 package com.vpc.rest.api.mytargetretail.service;
 
+import com.vpc.rest.api.mytargetretail.exception.ApiException;
+import com.vpc.rest.api.mytargetretail.model.CurrentPrice;
 import com.vpc.rest.api.mytargetretail.model.PriceData;
 import com.vpc.rest.api.mytargetretail.model.ProductDetailsResponse;
 import com.vpc.rest.api.mytargetretail.repository.PriceRepository;
@@ -23,16 +25,34 @@ public class RetailServiceImpl implements RetailService{
 
         ProductDetailsResponse productDetailsResponse = null;
 
-        String productName = productDataRestClient.getProductDataServiceResponse(Id);
-        if(productName != null && !productName.isEmpty()) {
-            PriceData priceData = priceRepository.getPriceData(Id);
-            productDetailsResponse = new ProductDetailsResponse(Id, productName, priceData.getCurrentPrice());
+        try {
+            String productName = productDataRestClient.getProductDataServiceResponse(Id);
+            if (productName != null && !productName.isEmpty()) {
+                PriceData priceData = priceRepository.getPriceData(Id);
+                productDetailsResponse = new ProductDetailsResponse(Id, productName, priceData.getCurrentPrice());
+            }
+        } catch (Exception ex) {
+            throw new ApiException(ex.getMessage());
         }
         return  productDetailsResponse;
     }
 
     @Override
-    public ProductDetailsResponse updateProductPrice(ProductDetailsResponse productDetailsResponse) {
-        return null;
+    public PriceData updateProductPrice(ProductDetailsResponse productDetailsResponse) {
+        PriceData modifiedPriceData;
+
+        PriceData priceData = priceRepository.getPriceData(productDetailsResponse.getProductId());
+        if (priceData != null) {
+            CurrentPrice currentPrice = new CurrentPrice(productDetailsResponse.getCurrentPrice().getValue(),
+                    productDetailsResponse.getCurrentPrice().getCurrencyCode());
+            modifiedPriceData = new PriceData(productDetailsResponse.getProductId(), currentPrice);
+
+            PriceData updatedPriceData = priceRepository.updatePriceData(modifiedPriceData);
+        } else {
+            throw new ApiException("PriceData is not found in the DB for productID : " + productDetailsResponse.getProductId());
+        }
+
+        return modifiedPriceData;
+
     }
 }
